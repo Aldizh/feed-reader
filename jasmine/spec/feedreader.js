@@ -1,3 +1,65 @@
+/**
+ * Utility function to calculate # of days diff.
+ * @param {string} date1
+ * @param {string} date2 
+ * @returns {number}
+*/
+function getDiffInDays(date1, date2) {
+  const diffInMS = new Date(date1).getTime() - new Date(date2).getTime()
+  const diffIndays = diffInMS / (24 * 60 * 60 * 1000)
+
+  return diffIndays
+}
+
+/**
+ * Calculate the longest streak given a series of links.
+ * @param {string[]} links
+ * @returns {Object}
+*/
+function calculateStreaks(links) {
+  // keep track of current date for comparison
+  let previousDate = links[0].timestamp
+  let previousUser = links[0].userId
+  const streak = {}
+
+  let currentStreak = 1 // maintains highest streak between
+  links.forEach(({ userId, timestamp }, index) => {
+    if (index > 0) {
+			previousDate = links[index-1].timestamp
+			previousUser = links[index-1].userId
+    }
+
+    const diffInDays = getDiffInDays(timestamp, previousDate)
+
+    // same user, check the timestamp
+    if (userId === previousUser) {
+        // check if we need to increment
+        if (diffInDays === 1) currentStreak += 1
+        else {
+					if (!streak[userId]) streak[userId] = currentStreak
+					else {
+						streak[userId] = Math.max(streak[userId], currentStreak)
+						currentStreak = 1 // reset the count
+					}
+        }
+    // changed users, check streak and reset the count
+    } else {
+        if (!streak[userId]) streak[userId] = currentStreak
+        else {
+					streak[userId] = Math.max(streak[userId], currentStreak)
+					currentStreak = 1 // reset the count
+        }
+    }
+    
+    // end of line, populate for remaining users
+    if (index === links.length - 1) {
+        if (!streak[userId]) streak[userId] = currentStreak
+        else streak[userId] = Math.max(streak[userId], currentStreak)
+    }
+  })
+  return streak
+}
+
 /* feedreader.js
  *
  * This is the spec file that Jasmine will read and contains
@@ -102,4 +164,81 @@ $(function() {
 				expect(feedA).not.toBe(feedB);
 			});
 		});
+
+		describe("Test consecutive streaks", function() {
+			const links1 = [
+				{
+					userId: "2",
+					timestamp: "2023-10-01T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-02T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-03T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-03T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-05T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "3",
+					timestamp: "2023-10-06T14:22:16.719Z" // iso formatted
+				},
+					{
+					userId: "2",
+					timestamp: "2023-10-01T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-02T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-03T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-04T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "2",
+					timestamp: "2023-10-04T14:22:16.719Z" // iso formatted
+				},
+			]
+			
+			const links2 = [
+				{
+					userId: "1",
+					timestamp: "2023-10-01T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "1",
+					timestamp: "2023-10-02T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "1",
+					timestamp: "2023-10-03T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "1",
+					timestamp: "2023-10-04T14:22:16.719Z" // iso formatted
+				},
+				{
+					userId: "1",
+					timestamp: "2023-10-05T14:22:16.719Z" // iso formatted
+				}
+			]
+
+			it('should work for multiple use occurences within the same data set', function() {
+				expect(calculateStreaks(links1)).toEqual({ '2': 4, '3': 1 });
+				expect(calculateStreaks(links2)).toEqual({ '1': 5 });
+			});
+		})
 }());
